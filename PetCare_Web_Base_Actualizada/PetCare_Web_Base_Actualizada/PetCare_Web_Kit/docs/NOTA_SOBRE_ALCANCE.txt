@@ -1,0 +1,1 @@
+No se incluyó el código original de Unidad 2 ni el ZIP actual de Visual Studio porque no estaban adjuntos en este turno. El paquete es una base de referencia creada a partir del contexto de conversación y debe cotejarse con el UML y el diagrama SQL oficiales.
