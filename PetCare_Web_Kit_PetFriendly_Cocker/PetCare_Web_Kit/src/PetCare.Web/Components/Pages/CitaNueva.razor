@@ -1,0 +1,62 @@
+@page "/citas/nueva"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+<PageTitle>Nueva cita | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/citas">Citas veterinarias</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Registrar nueva cita</h1>
+<p class="page-description">Completa la información de la consulta.</p>
+</div>
+</div>
+<OperacionAvisos Error="@Error" Ok="@Ok" />
+<div class="content-card">
+<form method="post" action="/operaciones/citas/nueva" data-enhance="false" data-cita-preview="true">
+    <AntiforgeryToken />
+<div class="hospital-form-grid">
+<div class="form-group">
+<label for="codigo">Código de cita</label>
+<input class="form-control" id="codigo" name="codigo" type="text" required maxlength="20" />
+</div>
+<div class="form-group">
+<label for="mascota">Nombre de la mascota</label>
+<input class="form-control" id="mascota" name="mascota" type="text" required maxlength="80" />
+</div>
+<MascotaCampos />
+<div class="form-group">
+<label for="fecha">Fecha y hora de cita</label>
+<input class="form-control" id="fecha" name="fecha" type="datetime-local" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required />
+</div>
+<div class="form-group">
+<label for="duracion">Duración (minutos)</label>
+<input class="form-control" id="duracion" name="duracion" type="number" value="30" required min="15" max="180" step="1" />
+</div>
+</div>
+<div class="hospital-cost-summary">
+<div>
+<span>Tarifa estimada (COP)</span>
+<strong data-cita-costo="true">—</strong>
+</div>
+</div>
+<small class="form-help">Tarifa base de $60.000; $1.500 por minuto adicional a 30.</small>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Registrar cita</button>
+</div>
+</form>
+<a class="btn btn-secondary" href="/citas">Cancelar</a>
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+}

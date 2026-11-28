@@ -1,0 +1,442 @@
+@page "/dashboard"
+
+@using System.Security.Claims
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using PetCare.Infrastructure.Services
+@using PetCare.Web.Security
+
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+
+@inject DashboardService ServicioDashboard
+@inject AuthenticationStateProvider AuthenticationState
+@inject SessionValidator Validador
+@inject NavigationManager Navigation
+
+<PageTitle>Panel principal | PetCare Web</PageTitle>
+
+<div class="dashboard-page">
+
+    <!-- BANNER DE BIENVENIDA -->
+
+    <section class="dashboard-welcome">
+
+        <div class="dashboard-welcome-content">
+
+            <span class="dashboard-eyebrow">
+                PANEL DE GESTIÓN VETERINARIA
+            </span>
+
+            <h1>¡Hola, @nombreUsuario!</h1>
+
+            <p>
+                Consulta y gestiona las actividades
+                de la clínica desde un solo lugar.
+            </p>
+
+            <div class="dashboard-welcome-meta">
+
+                <span class="dashboard-role">
+                    @rolUsuario
+                </span>
+
+                <span>
+                    @DateTime.Today.ToString(
+                        "dddd, d 'de' MMMM 'de' yyyy",
+                        new CultureInfo("es-CO"))
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="dashboard-welcome-icon"
+             aria-hidden="true">
+            <PetIcon Name="paw" />
+        </div>
+
+    </section>
+
+    <!-- ENCABEZADO DE INDICADORES -->
+
+    <div class="dashboard-section-heading">
+
+        <div>
+
+            <span class="eyebrow">
+                RESUMEN GENERAL
+            </span>
+
+            <h2>Estado de la clínica</h2>
+
+            @if (resumen != null)
+            {
+                <p class="page-description">
+                    Última actualización:
+                    @resumen.ActualizadoEn.ToString(
+                        "dd/MM/yyyy HH:mm:ss")
+                </p>
+            }
+
+        </div>
+
+        <a href="/dashboard"
+           data-enhance-nav="false"
+           class="btn btn-secondary">
+
+            ↻ Actualizar
+
+        </a>
+
+    </div>
+
+    <!-- ESTADOS DE CARGA Y ERROR -->
+    @if (cargando)
+    {
+        <div class="content-card empty-state"
+             role="status">
+
+            Consultando información de la clínica...
+
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="alert alert-danger"
+             role="alert">
+
+            @error
+
+        </div>
+    }
+    else if (resumen != null)
+    {
+        <!-- INDICADORES -->
+
+        <div class="dashboard-stats">
+
+            <article class="stat-card">
+
+                <div class="stat-icon mint">
+                    <PetIcon Name="calendar" />
+                </div>
+
+                <div class="stat-value">
+                    @resumen.CitasHoy
+                </div>
+
+                <div class="dashboard-stat-title">
+                    Citas de hoy
+                </div>
+
+                <div class="stat-label">
+                    @resumen.CitasConfirmadas confirmadas
+                </div>
+
+            </article>
+
+            <article class="stat-card">
+
+                <div class="stat-icon blue">
+                    <PetIcon Name="bed" />
+                </div>
+
+                <div class="stat-value">
+                    @resumen.HospitalizacionesActivas
+                </div>
+
+                <div class="dashboard-stat-title">
+                    Hospitalizaciones activas
+                </div>
+
+                <div class="stat-label">
+                    Pacientes sin fecha de alta
+                </div>
+
+            </article>
+
+            <article class="stat-card">
+
+                <div class="stat-icon peach">
+                    <PetIcon Name="pill" />
+                </div>
+
+                <div class="stat-value">
+                    @resumen.ProductosRegistrados
+                </div>
+
+                <div class="dashboard-stat-title">
+                    Productos registrados
+                </div>
+
+                <div class="stat-label">
+                    Catálogo de farmacia
+                </div>
+
+            </article>
+
+            <article class="stat-card">
+
+                <div class="stat-icon lilac">
+                    <PetIcon Name="receipt" />
+                </div>
+
+                <div class="stat-value">
+                    @resumen.FacturasHoy
+                </div>
+
+                <div class="dashboard-stat-title">
+                    Facturas vigentes de hoy
+                </div>
+
+                <div class="stat-label">
+                    No incluye facturas anuladas
+                </div>
+
+            </article>
+
+        </div>
+    }
+
+    <!-- MÓDULOS DEL SISTEMA -->
+
+    <div class="dashboard-section-heading">
+
+        <div>
+
+            <span class="eyebrow">
+                ÁREAS DE TRABAJO
+            </span>
+
+            <h2>Módulos de gestión</h2>
+
+            <p class="page-description">
+                Servicios disponibles de la clínica.
+            </p>
+
+        </div>
+
+    </div>
+
+    <div class="dashboard-modules">
+
+        <article class="dashboard-module">
+
+            <div class="stat-icon mint">
+                <PetIcon Name="calendar" />
+            </div>
+
+            <h3>Citas veterinarias</h3>
+
+            <p>
+                Registra y consulta las citas,
+                horarios y veterinarios asignados.
+            </p>
+
+            <a href="/citas"
+               class="btn btn-primary"
+               style="margin-top: auto;">
+
+                Gestionar citas →
+
+            </a>
+
+        </article>
+
+        <article class="dashboard-module">
+
+            <div class="stat-icon blue">
+                <PetIcon Name="bed" />
+            </div>
+
+            <h3>Hospitalizaciones</h3>
+
+            <p>
+                Gestiona ingresos, estancias,
+                tarifas y altas de pacientes.
+            </p>
+
+            <a href="/hospitalizaciones" class="btn btn-primary" style="margin-top: auto;">Gestionar hospitalizaciones →</a>
+
+        </article>
+
+        <article class="dashboard-module">
+
+            <div class="stat-icon peach">
+                <PetIcon Name="pill" />
+            </div>
+
+            <h3>Farmacia y lotes</h3>
+
+            <p>
+                Administra productos, medicamentos,
+                existencias y vencimientos.
+            </p>
+
+            <a href="/farmacia" class="btn btn-primary" style="margin-top: auto;">Gestionar farmacia →</a>
+
+        </article>
+
+        <article class="dashboard-module">
+
+            <div class="stat-icon lilac">
+                <PetIcon Name="receipt" />
+            </div>
+
+            <h3>Facturación</h3>
+
+            <p>
+                Genera facturas de servicios
+                veterinarios y productos de farmacia.
+            </p>
+
+            <a href="/facturas" class="btn btn-primary" style="margin-top: auto;">Gestionar facturas →</a>
+
+        </article>
+
+    </div>
+
+    <!-- ADMINISTRACIÓN DE USUARIOS -->
+
+    <AuthorizeView Policy="SoloAdministrador"
+                   Context="administrador">
+
+        <Authorized>
+
+            <div class="dashboard-section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        CONFIGURACIÓN
+                    </span>
+
+                    <h2>Administración del sistema</h2>
+
+                </div>
+
+            </div>
+
+            <article class="dashboard-admin-card">
+
+                <div class="stat-icon mint">
+                    <PetIcon Name="users" />
+                </div>
+
+                <div class="dashboard-admin-info">
+
+                    <h3>Gestión de usuarios</h3>
+
+                    <p>
+                        Administra las cuentas y los
+                        permisos del personal de la clínica.
+                    </p>
+
+                </div>
+
+                <a href="/usuarios"
+                   class="btn btn-primary">
+
+                    Administrar usuarios →
+
+                </a>
+
+            </article>
+
+        </Authorized>
+
+    </AuthorizeView>
+
+    <!-- INFORMACIÓN DE SEGURIDAD -->
+
+    <div class="security-note dashboard-security">
+
+        <span class="security-note-icon">
+            <PetIcon Name="shield" />
+        </span>
+
+        <p>
+            El acceso a PetCare Web está protegido
+            mediante autenticación y autorización
+            basada en roles.
+        </p>
+
+    </div>
+
+</div>
+
+@code {
+
+    private DashboardResumen? resumen;
+
+    private string nombreUsuario = "Usuario";
+
+    private string rolUsuario = "";
+
+    private string error = "";
+
+    private bool cargando = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var estado = await AuthenticationState
+            .GetAuthenticationStateAsync();
+
+        var usuario = estado.User;
+
+        // Comprobar autenticación y roles autorizados.
+        if (usuario.Identity?.IsAuthenticated != true ||
+            (!usuario.IsInRole("Administrador") &&
+             !usuario.IsInRole("Recepcionista")))
+        {
+            Navigation.NavigateTo(
+                "/login", forceLoad: true);
+
+            return;
+        }
+
+        // Verificar que la sesión siga vigente.
+        if (!await Validador.EsSesionValidaAsync(usuario))
+        {
+            Navigation.NavigateTo(
+                "/login", forceLoad: true);
+
+            return;
+        }
+
+        nombreUsuario =
+            usuario.FindFirst("NombreCompleto")?.Value
+            ?? usuario.Identity?.Name
+            ?? "Usuario";
+
+        rolUsuario =
+            usuario.FindFirst(ClaimTypes.Role)?.Value
+            ?? "";
+
+        await CargarResumenAsync();
+    }
+
+    private async Task CargarResumenAsync()
+    {
+        cargando = true;
+        error = "";
+        resumen = null;
+
+        try
+        {
+            resumen = await ServicioDashboard
+                .ObtenerResumenAsync();
+        }
+        catch (Exception)
+        {
+            error =
+                "No fue posible consultar la información " +
+                "de la clínica. Intenta actualizar el panel.";
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+}

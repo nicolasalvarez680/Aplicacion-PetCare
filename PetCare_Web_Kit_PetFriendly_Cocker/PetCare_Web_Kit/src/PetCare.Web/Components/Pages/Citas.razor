@@ -1,0 +1,107 @@
+@page "/citas"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject CitaVeterinariaService Servicio
+<PageTitle>Citas veterinarias | PetCare</PageTitle>
+<div class="admin-page">
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Citas veterinarias</h1>
+<p class="page-description">Registra, consulta y confirma las citas.</p>
+</div>
+<a class="btn btn-primary" href="/citas/nueva">+ Nueva cita</a>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+<div class="stats-grid">
+<article class="stat-card">
+<div class="stat-icon mint">📅</div>
+<div class="stat-value">@datos.Count</div>
+<div class="stat-label">Total de citas</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon blue">✓</div>
+<div class="stat-value">@(datos.Count(x => x.VeterinarioAsignado != null))</div>
+<div class="stat-label">Confirmadas</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon peach">◷</div>
+<div class="stat-value">@(datos.Count(x => x.VeterinarioAsignado == null))</div>
+<div class="stat-label">Pendientes</div>
+</article>
+</div>
+<div class="content-card">
+<h2>Listado de citas</h2>
+<form method="get" action="/citas" data-enhance="false" class="hospital-toolbar">
+<input type="search" name="q" class="form-control" aria-label="Buscar" placeholder="Buscar código, mascota, tipo o raza" value="@Q"/>
+<select name="estado" class="form-control" aria-label="Estado">
+<option value="" selected="@(string.IsNullOrEmpty(Estado))">Todos los estados</option>
+<option value="confirmadas" selected="@(Estado == "confirmadas")">Confirmadas</option>
+<option value="pendientes" selected="@(Estado == "pendientes")">Pendientes</option>
+
+</select>
+<button class="btn btn-secondary" type="submit">Buscar</button>
+</form>
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Código</th>
+<th>Mascota</th>
+<th>Fecha</th>
+<th>Duración</th>
+<th>Veterinario</th>
+<th>Costo</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+@foreach(var x in Filtrados) { <tr>
+<td>@x.Codigo</td>
+<td>
+<strong>@x.NombreMascota</strong>
+<small class="pet-animal-detail">@(x.TipoMascota ?? "Sin registrar")@(x.TipoMascota == "Perro" ? " · " + x.RazaMascota : "")</small>
+</td>
+<td>@x.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+<td>@x.DuracionMinutos min</td>
+<td>@(x.VeterinarioAsignado ?? "Sin asignar")</td>
+<td>@Moneda(x.ObtenerPrecioUnitario())</td>
+<td>
+<span class="hospital-status @(x.VeterinarioAsignado is null ? "active" : "discharged")">@(x.VeterinarioAsignado is null ? "Pendiente" : "Confirmada")</span>
+</td>
+<td>
+<a class="btn btn-secondary" href="@($"/citas/editar/{x.Id}")">Gestionar</a>
+</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+@if (!Filtrados.Any()) { <p class="empty-state">No se encontraron citas.</p>
+}
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+    [SupplyParameterFromQuery(Name = "estado")] public string? Estado { get; set; }
+    private bool Coincide(string texto) => string.IsNullOrWhiteSpace(Q) || texto.Contains(Q.Trim(), StringComparison.OrdinalIgnoreCase);
+    private List<CitaVeterinaria> datos = new();
+    private IEnumerable<CitaVeterinaria> Filtrados => datos.Where(x => Coincide(x.Codigo + " " + x.NombreMascota + " " + x.TipoMascota + " " + x.RazaMascota + " " + x.VeterinarioAsignado) && (Estado != "confirmadas" || x.VeterinarioAsignado != null) && (Estado != "pendientes" || x.VeterinarioAsignado == null));
+    protected override async Task OnParametersSetAsync()
+    {
+        cargaError = null;
+        try { datos = await Servicio.ObtenerTodasAsync((await Auth.GetAuthenticationStateAsync()).User); }
+        catch (Exception) { datos.Clear(); cargaError = "No se pudieron consultar los registros. Comprueba la conexión y tu sesión."; }
+    }
+}

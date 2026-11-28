@@ -1,0 +1,39 @@
+@page "/"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [AllowAnonymous]
+<PageTitle>PetCare · Plataforma veterinaria</PageTitle>
+<section class="pet-hero">
+    <div class="pet-hero-copy">
+        <span class="pet-kicker"><PetIcon Name="paw" /> BIENESTAR ANIMAL · GESTIÓN VETERINARIA</span>
+        <h1>Cuidamos a quienes<br class="desktop-break" /> más quieres<span>.</span></h1>
+        <div class="pet-underline" aria-hidden="true"></div>
+        <p>Gestiona de forma integral tu clínica veterinaria: citas, hospitalizaciones, farmacia y facturación, todo en una sola plataforma.</p>
+        <div class="pet-hero-actions">
+            <a class="pet-pill pet-solid" href="#modulos"><PetIcon Name="paw" /> Explorar módulos</a>
+            <AuthorizeView Policy="PersonalAutorizado" Context="sesion"><Authorized><a class="pet-pill pet-outline" href="/dashboard">Ir al panel <PetIcon Name="arrow" /></a></Authorized><NotAuthorized><a class="pet-pill pet-outline" href="/registro"><PetIcon Name="users" /> Crear cuenta</a></NotAuthorized></AuthorizeView>
+        </div>
+    </div>
+    <div class="pet-hero-art"><img src="/branding/cocker-portada.webp" alt="Cocker spaniel cobrizo con hocico y pecho blancos" width="900" height="1125" fetchpriority="high" /></div>
+</section>
+<section id="modulos" class="pet-modules">
+    <div class="pet-section-title"><span><PetIcon Name="paw" /></span><h2>Módulos del proyecto</h2><p>Herramientas especializadas para una gestión veterinaria organizada.</p></div>
+    <AuthorizeView Policy="PersonalAutorizado" Context="acceso">
+        <Authorized><div class="pet-module-grid">@foreach(var m in Modulos){<a class="pet-module-card" href="@m.Ruta"><span class="pet-module-icon"><PetIcon Name="@m.Icono" /></span><h3>@m.Titulo</h3><p>@m.Descripcion</p><span class="pet-module-arrow"><PetIcon Name="arrow" /></span></a>}</div></Authorized>
+        <NotAuthorized><div class="pet-module-grid">@foreach(var m in Modulos){<a class="pet-module-card" href="/login"><span class="pet-module-icon"><PetIcon Name="@m.Icono" /></span><h3>@m.Titulo</h3><p>@m.Descripcion</p><span class="pet-module-arrow"><PetIcon Name="arrow" /></span></a>}</div></NotAuthorized>
+    </AuthorizeView>
+</section>
+<section class="pet-benefits" id="nosotros" aria-label="Acerca de PetCare">
+    <article><span class="pet-module-icon"><PetIcon Name="heart" /></span><div><h3>Atención organizada</h3><p>Centraliza la gestión de tus pacientes y sus servicios.</p></div></article>
+    <article><span class="pet-module-icon"><PetIcon Name="users" /></span><div><h3>Acceso por roles</h3><p>Herramientas para administradores y recepcionistas.</p></div></article>
+    <article><span class="pet-module-icon"><PetIcon Name="shield" /></span><div><h3>Gestión responsable</h3><p>Inicio de sesión, contraseñas protegidas y validación de operaciones.</p></div></article>
+</section>
+@code {
+    private sealed record Modulo(string Titulo, string Descripcion, string Icono, string Ruta);
+    private static readonly Modulo[] Modulos = new[] {
+        new Modulo("Citas veterinarias", "Agenda, consulta y confirma las citas de tus pacientes.", "calendar", "/citas"),
+        new Modulo("Hospitalizaciones", "Gestiona ingresos, estancias, costos y altas.", "bed", "/hospitalizaciones"),
+        new Modulo("Farmacia y lotes", "Administra medicamentos, existencias y vencimientos.", "pill", "/farmacia"),
+        new Modulo("Facturación", "Emite, consulta e imprime comprobantes de servicios y productos.", "receipt", "/facturas")
+    };
+}

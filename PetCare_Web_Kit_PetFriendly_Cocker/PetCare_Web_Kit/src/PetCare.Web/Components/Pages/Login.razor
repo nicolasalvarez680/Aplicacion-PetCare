@@ -1,0 +1,29 @@
+@page "/login"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+<PageTitle>Iniciar sesión | PetCare</PageTitle>
+<section class="pet-auth pet-login">
+    <div class="pet-auth-pane">
+        <div class="login-card pet-auth-card">
+            <header class="pet-auth-heading"><span class="pet-paw-title"><PetIcon Name="paw" /></span><h1>Iniciar sesión</h1></header>
+            <div class="pet-underline" aria-hidden="true"></div>
+            <p class="pet-auth-subtitle">Ingresa para gestionar la atención de nuestros pacientes.</p>
+            @if (Error == "1") { <div class="alert alert-danger" role="alert">No fue posible iniciar sesión. Verifica tus credenciales o espera cinco minutos antes de volver a intentarlo.</div> }
+            @if (Registrado == "1") { <div class="alert alert-success" role="status">Cuenta creada. Ya puedes iniciar sesión.</div> }
+            <form method="post" action="/auth/login" data-enhance="false">
+                <AntiforgeryToken />
+                <div class="form-group"><label for="nombreUsuario">Usuario</label><div class="pet-input"><PetIcon Name="user" /><input type="text" id="nombreUsuario" name="nombreUsuario" class="form-control" placeholder="Ingresa tu usuario" autocomplete="username" maxlength="50" required /></div></div>
+                <div class="form-group"><label for="contrasena">Contraseña</label><div class="pet-input has-toggle"><PetIcon Name="lock" /><input type="password" id="contrasena" name="contrasena" class="form-control" placeholder="Ingresa tu contraseña" autocomplete="current-password" maxlength="128" required /><button type="button" class="pet-password-toggle" data-password-toggle="contrasena" aria-label="Mostrar contraseña" aria-pressed="false"><PetIcon Name="eye" /></button></div></div>
+                <label class="pet-remember"><input type="checkbox" name="recordar" value="si" /> Recordar mi sesión</label>
+                <button type="submit" class="btn btn-primary login-button"><PetIcon Name="paw" /> Iniciar sesión</button>
+            </form>
+            <p class="registro-link">¿No tienes cuenta? <a href="/registro">Regístrate aquí</a></p>
+            <div class="pet-auth-features"><span><PetIcon Name="calendar" /> Gestión de citas</span><span><PetIcon Name="heart" /> Atención organizada</span><span><PetIcon Name="shield" /> Acceso por roles</span></div>
+        </div>
+    </div>
+    <div class="pet-auth-art"><img src="/branding/login.webp" alt="Golden retriever sonriente" width="855" height="747" fetchpriority="high" /></div>
+</section>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "registrado")] public string? Registrado { get; set; }
+}

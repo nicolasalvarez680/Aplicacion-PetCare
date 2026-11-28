@@ -1,0 +1,105 @@
+@page "/farmacia"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject FarmaciaService Servicio
+<PageTitle>Farmacia e inventario | PetCare</PageTitle>
+<div class="admin-page">
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Farmacia e inventario</h1>
+<p class="page-description">Administra los lotes, precios, existencias y vencimientos.</p>
+</div>
+<a class="btn btn-primary" href="/farmacia/nuevo">+ Nuevo lote</a>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+<div class="stats-grid">
+<article class="stat-card">
+<div class="stat-icon mint">💊</div>
+<div class="stat-value">@datos.Count</div>
+<div class="stat-label">Lotes registrados</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon blue">▦</div>
+<div class="stat-value">@(datos.Sum(x => (long)x.Existencias))</div>
+<div class="stat-label">Unidades en inventario</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon peach">!</div>
+<div class="stat-value">@(datos.Count(x => x.EstaVencido()))</div>
+<div class="stat-label">Lotes vencidos</div>
+</article>
+</div>
+<div class="content-card">
+<h2>Inventario de medicamentos</h2>
+<form method="get" action="/farmacia" data-enhance="false" class="hospital-toolbar">
+<input type="search" name="q" class="form-control" aria-label="Buscar" placeholder="Buscar por código o nombre" value="@Q"/>
+<select name="estado" class="form-control" aria-label="Estado">
+<option value="" selected="@(string.IsNullOrEmpty(Estado))">Todos los estados</option>
+<option value="vigentes" selected="@(Estado == "vigentes")">Vigentes</option>
+<option value="vencidos" selected="@(Estado == "vencidos")">Vencidos</option>
+<option value="agotados" selected="@(Estado == "agotados")">Agotados</option>
+
+</select>
+<button class="btn btn-secondary" type="submit">Buscar</button>
+</form>
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Código</th>
+<th>Medicamento</th>
+<th>Vencimiento</th>
+<th>Existencias</th>
+<th>Precio unitario</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+@foreach (var x in Filtrados) { <tr>
+<td>@x.Codigo</td>
+<td>
+<strong>@x.Nombre</strong>
+</td>
+<td>@x.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+<td>@x.Existencias</td>
+<td>@Moneda(x.PrecioUnidad)</td>
+<td>
+<span class="hospital-status @(x.EstaVencido() ? "expired" : "discharged")">@(x.EstaVencido() ? "Vencido" : x.Existencias == 0 ? "Sin existencias" : "Vigente")</span>
+</td>
+<td>
+<a class="btn btn-secondary" href="@($"/farmacia/editar/{x.Id}")">Gestionar</a>
+</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+@if (!Filtrados.Any()) { <p class="empty-state">No se encontraron lotes.</p>
+}
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+    [SupplyParameterFromQuery(Name = "estado")] public string? Estado { get; set; }
+    private bool Coincide(string texto) => string.IsNullOrWhiteSpace(Q) || texto.Contains(Q.Trim(), StringComparison.OrdinalIgnoreCase);
+    private List<LoteMedicamento> datos = new();
+    private IEnumerable<LoteMedicamento> Filtrados => datos.Where(x => Coincide(x.Codigo + " " + x.Nombre) && (Estado != "vigentes" || !x.EstaVencido()) && (Estado != "vencidos" || x.EstaVencido()) && (Estado != "agotados" || x.Existencias == 0));
+    protected override async Task OnParametersSetAsync()
+    {
+        cargaError = null;
+        try { datos = await Servicio.ObtenerTodosAsync((await Auth.GetAuthenticationStateAsync()).User); }
+        catch (Exception) { datos.Clear(); cargaError = "No se pudieron consultar los registros. Comprueba la conexión y tu sesión."; }
+    }
+}

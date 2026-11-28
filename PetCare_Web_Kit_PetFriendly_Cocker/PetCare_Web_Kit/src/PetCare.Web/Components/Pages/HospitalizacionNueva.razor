@@ -1,0 +1,66 @@
+@page "/hospitalizaciones/nueva"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+<PageTitle>Nuevo ingreso | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/hospitalizaciones">Hospitalizaciones</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Registrar hospitalización</h1>
+<p class="page-description">Completa los datos del ingreso.</p>
+</div>
+</div>
+<OperacionAvisos Error="@Error" Ok="@Ok" />
+<div class="content-card">
+<form method="post" action="/operaciones/hospitalizaciones/nueva" data-enhance="false" data-hospital-preview="true">
+    <AntiforgeryToken />
+<div class="hospital-form-grid">
+<div class="form-group">
+<label for="codigo">Código</label>
+<input class="form-control" id="codigo" name="codigo" type="text" required maxlength="20" placeholder="HOS-001" />
+</div>
+<div class="form-group">
+<label for="mascota">Nombre de la mascota</label>
+<input class="form-control" id="mascota" name="mascota" type="text" required maxlength="80" />
+</div>
+<MascotaCampos />
+<div class="form-group">
+<label for="ingreso">Fecha y hora de ingreso</label>
+<input class="form-control" id="ingreso" name="ingreso" type="datetime-local" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required />
+</div>
+<div class="form-group">
+<label for="tarifa">Tarifa diaria (COP)</label>
+<input class="form-control" id="tarifa" name="tarifa" type="number" required min="0.01" step="0.01" max="9999999999999999.99" />
+</div>
+</div>
+<div class="hospital-cost-summary" aria-live="polite">
+<div>
+<span>Días estimados</span>
+<strong data-dias="true">—</strong>
+</div>
+<div>
+<span>Costo estimado</span>
+<strong data-costo="true">—</strong>
+</div>
+</div>
+<small class="form-help">Cálculo inclusivo por días calendario; el servidor verifica el importe definitivo.</small>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Registrar ingreso</button>
+</div>
+</form>
+<a href="/hospitalizaciones" class="btn btn-secondary">Cancelar</a>
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+}

@@ -1,0 +1,41 @@
+@page "/acceso-denegado"
+
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize]
+
+<PageTitle>Acceso denegado - PetCare</PageTitle>
+
+<div class="login-page">
+
+    <div class="login-card access-denied-card">
+
+        <div class="access-denied-icon">
+            🔒
+        </div>
+
+        <span class="eyebrow access-denied-label">
+            ERROR 403 · ACCESO RESTRINGIDO
+        </span>
+
+        <h1>Acceso denegado</h1>
+
+        <p>
+            No tienes los permisos necesarios
+            para acceder a esta sección de
+            PetCare Web.
+        </p>
+
+        <p class="access-denied-help">
+            Si necesitas acceso, comunícate
+            con el administrador del sistema.
+        </p>
+
+        <a href="/dashboard"
+           class="btn btn-primary">
+            Volver al inicio
+        </a>
+
+    </div>
+
+</div>

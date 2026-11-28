@@ -1,0 +1,98 @@
+@page "/farmacia/editar/{Id:int}"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject FarmaciaService Servicio
+<PageTitle>Gestionar lote | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/farmacia">Farmacia</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Gestionar lote</h1>
+<p class="page-description">Actualiza los datos y repón existencias.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if (registro is not null) { <div class="content-card">
+<h2>@registro.Codigo · @registro.Nombre</h2>
+<p>Existencias: @registro.Existencias | Precio: @Moneda(registro.PrecioUnidad) | Vence: @registro.FechaVencimiento.ToString("dd/MM/yyyy")</p>
+@if (!facturado) {<form method="post" action="@($"/operaciones/farmacia/{Id}/editar")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="hospital-form-grid">
+<div class="form-group">
+<label for="codigo">Código de lote</label>
+<input class="form-control" id="codigo" name="codigo" type="text" value="@registro.Codigo" required maxlength="20" />
+</div>
+<div class="form-group">
+<label for="nombre">Nombre del medicamento</label>
+<input class="form-control" id="nombre" name="nombre" type="text" value="@registro.Nombre" required maxlength="100" />
+</div>
+<div class="form-group">
+<label for="vencimiento">Fecha de vencimiento</label>
+<input class="form-control" id="vencimiento" name="vencimiento" type="date" value="@registro.FechaVencimiento.ToString("yyyy-MM-dd")" required />
+</div>
+<div class="form-group">
+<label for="precio">Precio unitario (COP)</label>
+<input class="form-control" id="precio" name="precio" type="number" value="@registro.PrecioUnidad.ToString(CultureInfo.InvariantCulture)" required min="0.01" step="0.01" max="9999999999999999.99" />
+</div>
+</div>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Guardar cambios</button>
+</div>
+</form>
+} else { <p class="security-note">Los datos de un lote con facturas asociadas están protegidos.</p>
+}
+</div>
+@if (!registro.EstaVencido()) { <div class="content-card hospital-alta-card">
+<h2>Reponer existencias</h2>
+<form method="post" action="@($"/operaciones/farmacia/{Id}/reponer")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="form-group">
+<label for="cantidad">Unidades a ingresar</label>
+<input class="form-control" id="cantidad" name="cantidad" type="number" required min="1" max="1000000" step="1" />
+</div>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Reponer</button>
+</div>
+</form>
+</div>
+} else { <div class="alert alert-danger">Lote vencido: no puede facturarse ni reponerse.</div>
+}
+@if (!facturado) { <div class="content-card hospital-alta-card">
+<h2>Eliminar lote</h2>
+<form method="post" action="@($"/operaciones/farmacia/{Id}/eliminar")" data-enhance="false" >
+    <AntiforgeryToken />
+<label class="confirmacion">
+<input type="checkbox" name="confirmar" value="si" required /> Confirmo esta operación.</label>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Eliminar lote</button>
+</div>
+</form>
+</div>
+} } else { <p>Registro no disponible.</p>
+}
+<p>
+<a class="btn btn-secondary" href="/farmacia">Volver al inventario</a>
+</p>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [Parameter] public int Id { get; set; }
+    private LoteMedicamento? registro; private bool facturado;
+    protected override async Task OnParametersSetAsync() {
+        registro=null; cargaError=null;
+        try { var user=(await Auth.GetAuthenticationStateAsync()).User; registro=await Servicio.ObtenerPorIdAsync(Id,user); if(registro!=null) facturado=await Servicio.EstaFacturadoAsync(Id,user); }
+        catch(Exception) { registro=null; cargaError="No fue posible consultar el lote."; }
+    }
+}

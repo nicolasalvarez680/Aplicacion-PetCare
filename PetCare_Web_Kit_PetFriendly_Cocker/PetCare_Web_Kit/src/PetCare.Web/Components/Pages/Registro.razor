@@ -1,0 +1,30 @@
+@page "/registro"
+@using Microsoft.AspNetCore.Authorization
+@attribute [AllowAnonymous]
+<PageTitle>Crear cuenta | PetCare</PageTitle>
+<section class="pet-auth pet-register">
+    <div class="pet-auth-pane">
+        <div class="login-card pet-auth-card registro-card">
+            <header class="pet-auth-heading"><span class="pet-paw-title"><PetIcon Name="paw" /></span><h1>Crear cuenta</h1></header>
+            <div class="pet-underline" aria-hidden="true"></div>
+            <p class="pet-auth-subtitle">Regístrate como Administrador o Recepcionista y gestiona la atención de tu clínica veterinaria.</p>
+            <OperacionAvisos Error="@Error" />
+            <form method="post" action="/auth/registro" data-enhance="false">
+                <AntiforgeryToken />
+                <div class="form-group"><label for="nombreCompleto">Nombre completo</label><div class="pet-input"><PetIcon Name="user" /><input class="form-control" id="nombreCompleto" name="nombreCompleto" type="text" required maxlength="100" autocomplete="name" placeholder="Ingresa tu nombre completo" /></div></div>
+                <div class="pet-register-grid">
+                    <div class="form-group"><label for="nombreUsuario">Usuario</label><div class="pet-input"><PetIcon Name="user" /><input class="form-control" id="nombreUsuario" name="nombreUsuario" type="text" required maxlength="50" autocomplete="username" placeholder="Tu usuario" /></div></div>
+                    <div class="form-group"><label for="rol">Rol</label><div class="pet-input"><PetIcon Name="users" /><select id="rol" name="rol" class="form-control" required><option value="" disabled selected>Selecciona tu rol</option><option value="Recepcionista">Recepcionista</option><option value="Administrador">Administrador</option></select></div></div>
+                    <div class="form-group"><label for="contrasena">Contraseña</label><div class="pet-input has-toggle"><PetIcon Name="lock" /><input class="form-control" id="contrasena" name="contrasena" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="Crea una contraseña" /><button type="button" class="pet-password-toggle" data-password-toggle="contrasena" aria-label="Mostrar contraseña" aria-pressed="false"><PetIcon Name="eye" /></button></div></div>
+                    <div class="form-group"><label for="confirmarContrasena">Confirmar contraseña</label><div class="pet-input has-toggle"><PetIcon Name="lock" /><input class="form-control" id="confirmarContrasena" name="confirmarContrasena" type="password" required minlength="12" maxlength="128" autocomplete="new-password" placeholder="Repite tu contraseña" /><button type="button" class="pet-password-toggle" data-password-toggle="confirmarContrasena" aria-label="Mostrar contraseña" aria-pressed="false"><PetIcon Name="eye" /></button></div></div>
+                </div>
+                <p class="form-help pet-password-help">Usa al menos 12 caracteres. Las contraseñas deben coincidir.</p>
+                <button type="submit" class="btn btn-primary login-button"><PetIcon Name="paw" /> Registrarme</button>
+            </form>
+            <p class="registro-link">¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a></p>
+            <div class="pet-auth-features"><span><PetIcon Name="shield" /> Contraseña protegida</span><span><PetIcon Name="calendar" /> Gestión de citas</span><span><PetIcon Name="heart" /> Bienestar animal</span></div>
+        </div>
+    </div>
+    <div class="pet-auth-art"><img src="/branding/registro.webp" alt="Perro y gato descansando juntos" width="791" height="732" fetchpriority="high" /></div>
+</section>
+@code { [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; } }

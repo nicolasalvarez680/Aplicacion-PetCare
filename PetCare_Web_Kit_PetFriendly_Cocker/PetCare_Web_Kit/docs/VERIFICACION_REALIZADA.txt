@@ -1,0 +1,41 @@
+VERIFICACIÓN EN EL ENTORNO DE PREPARACIÓN
+
+APROBADO (revisión estática):
+- 20 rutas de página únicas.
+- 20 formularios POST: cada uno tiene token antifalsificación y coincide con un endpoint del servidor.
+- XML de todos los proyectos válido.
+- Los dos archivos de la migración InitialCreate se conservaron byte por byte.
+- No se incluyeron carpetas .vs, bin, obj, .git ni archivos .user.
+- node --check src/PetCare.Web/wwwroot/petcare.js: correcto.
+- node tests/preview-checks.cjs: 5 comprobaciones correctas.
+
+PENDIENTE (no se ejecutó):
+- Restauración NuGet y compilación .NET 10.
+- Pruebas de dominio C# incluidas en tests/PetCare.Domain.Checks.
+- Aplicación de migraciones y pruebas integradas con SQL Server LocalDB.
+- Pruebas funcionales, de seguridad y concurrencia en el navegador.
+
+Motivo: no hay SDK .NET ni LocalDB instalados en el entorno de preparación y no se pudo acceder a la descarga del SDK. No es evidencia de compilación exitosa.
+
+CAMBIO POSTERIOR: REGISTRO LIBRE
+- Se eliminó el campo de invitación y su comprobación en el endpoint.
+- Se conservan la validación de roles, hash, token antifalsificación, limitación de solicitudes y control de duplicados.
+- Las migraciones no se modificaron.
+- La compilación y las pruebas de registro en Windows siguen pendientes de ejecutar para esta revisión.
+- Advertencia: cualquier visitante puede crear una cuenta administrativa. Solo para uso académico local.
+
+CAMBIO POSTERIOR: PETFRIENDLY 2.0
+- Portada pública / y panel autorizado /dashboard.
+- Se mantienen las rutas POST, campos de autenticación, antifalsificación y validaciones. Se añadió el campo opcional recordar a login.
+- Se conservaron las capas Domain/Infrastructure y todas las migraciones sin cambios.
+- Se probaron los tres diseños públicos mediante HTML estático reproducido en Chromium a 1440, 768 y 390 píxeles; sin desbordamiento horizontal ni errores JS. La selección de roles, imágenes y visibilidad de contraseñas funcionaron en esa reproducción.
+- Se volvieron a ejecutar las 5 comprobaciones de vistas previas con Node.js.
+- La compilación Razor/C#, conexión a LocalDB y envíos reales de formularios siguen pendientes de verificar en Windows.
+
+- 21 rutas Razor únicas; 20 formularios POST con los mismos destinos de la versión anterior y token antifalsificación en todos.
+
+ACTUALIZACIÓN COCKER Y DATOS DE MASCOTA
+- Revisión estática de los cuatro formularios, endpoints, servicios, dominio y migración/snapshot.
+- Node: 5 comprobaciones de costos + 3 de tipo/raza superadas.
+- Chromium: reproducción HTML de portada con CSS e imagen reales a 1440, 768 y 390 px, sin desbordamiento horizontal; controles de raza requeridos para perro, ocultos y excluidos del envío para gato.
+- Pendiente: compilación .NET 10, ejecución de pruebas C# y aplicación de migración/pruebas con SQL Server LocalDB.

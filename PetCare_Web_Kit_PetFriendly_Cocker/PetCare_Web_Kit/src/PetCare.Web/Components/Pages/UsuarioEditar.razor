@@ -1,0 +1,81 @@
+@page "/usuarios/editar/{Id:int}"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "SoloAdministrador")]
+@using PetCare.Domain.Enums
+@using PetCare.Web.Security
+@inject PermisosService Permisos
+@inject UsuarioService Servicio
+<PageTitle>Editar usuario | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/usuarios">Usuarios</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Editar usuario</h1>
+<p class="page-description">Modifica los datos y permisos del personal.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if(registro is not null) { <div class="content-card">
+<h2>Usuario #@Id</h2>
+<form method="post" action="@($"/operaciones/usuarios/{Id}/editar")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="form-group">
+<label for="nombreUsuario">Nombre de usuario</label>
+<input class="form-control" id="nombreUsuario" name="nombreUsuario" type="text" value="@registro.NombreUsuario" required maxlength="50" />
+</div>
+<div class="form-group">
+<label for="nombreCompleto">Nombre completo</label>
+<input class="form-control" id="nombreCompleto" name="nombreCompleto" type="text" value="@registro.NombreCompleto" required maxlength="100" />
+</div>
+<div class="form-group">
+<label for="rol">Rol</label>
+<select class="form-control" id="rol" name="rol">
+<option value="Recepcionista" selected="@(!registro.EsAdministrador)">Recepcionista</option>
+<option value="Administrador" selected="@registro.EsAdministrador">Administrador</option>
+</select>
+</div>
+<p class="security-note">La contraseña actual no se modifica.</p>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Guardar cambios</button>
+</div>
+</form>
+</div>
+<div class="content-card hospital-alta-card">
+<h2>Eliminar usuario</h2>
+<p>No puedes eliminar al último administrador ni usuarios con facturas asociadas.</p>
+<form method="post" action="@($"/operaciones/usuarios/{Id}/eliminar")" data-enhance="false" >
+    <AntiforgeryToken />
+<label class="confirmacion">
+<input type="checkbox" name="confirmar" value="si" required /> Confirmo esta operación.</label>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Eliminar usuario</button>
+</div>
+</form>
+</div>
+} else { <p>Usuario no disponible.</p>
+}
+<p>
+<a class="btn btn-secondary" href="/usuarios">Volver a usuarios</a>
+</p>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [Parameter] public int Id { get; set; }
+    private Usuario? registro;
+    protected override async Task OnParametersSetAsync() {
+        registro=null;
+        try { await Permisos.VerificarAdministradorAsync(); registro=await Servicio.ObtenerPorIdAsync(Id); }
+        catch(Exception) { cargaError="No fue posible consultar el usuario."; }
+    }
+}

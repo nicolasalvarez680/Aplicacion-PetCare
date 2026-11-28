@@ -1,0 +1,50 @@
+@inherits LayoutComponentBase
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+
+<div class="shell pet-shell">
+    <header class="topbar pet-topbar">
+        <a class="pet-brand" href="/" aria-label="PetCare, página principal">
+            <img src="/branding/logo.png" alt="" width="68" height="52" />
+            <span><strong>PetCare</strong><small>Plataforma veterinaria</small></span>
+        </a>
+        <AuthorizeView Policy="PersonalAutorizado" Context="sesion">
+            <Authorized>
+                <div class="pet-header-actions">
+                    <a class="pet-pill pet-outline" href="/dashboard"><PetIcon Name="home" /> Panel de gestión</a>
+                    <div class="session-user"><div class="session-avatar">@Inicial(sesion.User)</div><div class="session-info"><span class="session-name">@Nombre(sesion.User)</span><span class="session-role session-reception">@sesion.User.FindFirst(ClaimTypes.Role)?.Value</span></div></div>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <nav class="pet-public-nav" aria-label="Navegación pública">
+                    <NavLink href="/" Match="NavLinkMatch.All">Inicio</NavLink>
+                    <a href="/#modulos">Servicios</a><a href="/#nosotros">Nosotros</a>
+                </nav>
+                <div class="pet-header-actions"><NavLink class="pet-pill pet-outline" href="/registro"><PetIcon Name="users" /> Registrarse</NavLink><NavLink class="pet-pill pet-solid" href="/login"><PetIcon Name="arrow" /> Iniciar sesión</NavLink></div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </header>
+    <AuthorizeView Policy="PersonalAutorizado" Context="personal">
+        <Authorized>
+            <nav class="main-nav pet-main-nav" aria-label="Módulos de gestión">
+                <div class="nav-links">
+                    <NavLink class="nav-link" href="/dashboard" Match="NavLinkMatch.All"><PetIcon Name="home" /> Panel</NavLink>
+                    <NavLink class="nav-link" href="/citas"><PetIcon Name="calendar" /> Citas veterinarias</NavLink>
+                    <NavLink class="nav-link" href="/hospitalizaciones"><PetIcon Name="bed" /> Hospitalizaciones</NavLink>
+                    <NavLink class="nav-link" href="/farmacia"><PetIcon Name="pill" /> Farmacia</NavLink>
+                    <NavLink class="nav-link" href="/facturas"><PetIcon Name="receipt" /> Facturación</NavLink>
+                    <AuthorizeView Policy="SoloAdministrador" Context="administrador"><Authorized><NavLink class="nav-link" href="/usuarios"><PetIcon Name="users" /> Usuarios</NavLink></Authorized></AuthorizeView>
+                </div>
+                <form method="post" action="/auth/logout" data-enhance="false" class="logout-form"><AntiforgeryToken /><button type="submit" class="btn-logout"><PetIcon Name="arrow" /> Cerrar sesión</button></form>
+            </nav>
+        </Authorized>
+    </AuthorizeView>
+    <main id="contenido">@Body</main>
+    <footer class="pet-footer"><div><PetIcon Name="paw" /><strong>PetCare · Cuidamos a quienes más quieres</strong></div><small>© @DateTime.Today.Year PetCare · Proyecto académico</small></footer>
+</div>
+@code {
+    private static string Nombre(ClaimsPrincipal u) => u.FindFirst("NombreCompleto")?.Value ?? u.Identity?.Name ?? "Usuario";
+    private static string Inicial(ClaimsPrincipal u) { var n = Nombre(u).Trim(); return n.Length == 0 ? "?" : n[..1].ToUpperInvariant(); }
+}

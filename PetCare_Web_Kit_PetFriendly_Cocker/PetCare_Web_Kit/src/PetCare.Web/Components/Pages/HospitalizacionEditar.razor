@@ -1,0 +1,115 @@
+@page "/hospitalizaciones/editar/{Id:int}"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject HospitalizacionService Servicio
+<PageTitle>Gestionar hospitalización | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/hospitalizaciones">Hospitalizaciones</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Gestionar hospitalización</h1>
+<p class="page-description">Consulta la estancia, modifica los datos o registra el alta.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if (registro is not null) {
+<div class="content-card">
+<h2>@registro.Codigo · @registro.NombreMascota</h2>
+<p class="pet-animal-detail">Tipo: @(registro.TipoMascota ?? "Sin registrar") @if (registro.TipoMascota == "Perro") { <span> · Raza: @(registro.RazaMascota ?? "Sin registrar")</span> }</p>
+<p>Ingreso: @registro.Fecha.ToString("dd/MM/yyyy HH:mm") | Estado: @(registro.EstaHospitalizado ? "Hospitalizado" : "Dado de alta")</p>
+<p>Alta: @(registro.FechaAlta?.ToString("dd/MM/yyyy HH:mm") ?? "—")</p>
+<div class="hospital-cost-summary">
+<div>
+<span>Días de estancia</span>
+<strong>@registro.CalcularDias()</strong>
+</div>
+<div>
+<span>Costo acumulado / definitivo</span>
+<strong>@Moneda(registro.ObtenerPrecioUnitario())</strong>
+</div>
+</div>
+@if (registro.EstaHospitalizado && !facturada) {
+<form method="post" action="@($"/operaciones/hospitalizaciones/{Id}/editar")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="hospital-form-grid">
+<div class="form-group">
+<label for="codigo">Código</label>
+<input class="form-control" id="codigo" name="codigo" type="text" value="@registro.Codigo" required maxlength="20" placeholder="HOS-001" />
+</div>
+<div class="form-group">
+<label for="mascota">Nombre de la mascota</label>
+<input class="form-control" id="mascota" name="mascota" type="text" value="@registro.NombreMascota" required maxlength="80" />
+</div>
+<MascotaCampos Tipo="@registro.TipoMascota" Raza="@registro.RazaMascota" />
+<div class="form-group">
+<label for="ingreso">Fecha y hora de ingreso</label>
+<input class="form-control" id="ingreso" name="ingreso" type="datetime-local" value="@registro.Fecha.ToString("yyyy-MM-ddTHH:mm")" required />
+</div>
+<div class="form-group">
+<label for="tarifa">Tarifa diaria (COP)</label>
+<input class="form-control" id="tarifa" name="tarifa" type="number" value="@registro.TarifaDiaria.ToString(CultureInfo.InvariantCulture)" required min="0.01" step="0.01" max="9999999999999999.99" />
+</div>
+</div>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Guardar cambios</button>
+</div>
+</form>
+} else { <p class="security-note">La estancia finalizada o facturada no puede modificarse.</p>
+}
+</div>
+@if (registro.EstaHospitalizado && !facturada) { <div class="content-card hospital-alta-card">
+<h2>Registrar alta médica</h2>
+<p>Guarda los cambios antes de finalizar la estancia.</p>
+<form method="post" action="@($"/operaciones/hospitalizaciones/{Id}/alta")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="form-group">
+<label for="alta">Fecha y hora de alta</label>
+<input class="form-control" id="alta" name="alta" type="datetime-local" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss")" required step="1" />
+</div>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Registrar alta</button>
+</div>
+</form>
+</div>
+}
+@if (!facturada) { <div class="content-card hospital-alta-card">
+<h2>Eliminar registro</h2>
+<form method="post" action="@($"/operaciones/hospitalizaciones/{Id}/eliminar")" data-enhance="false" >
+    <AntiforgeryToken />
+<label class="confirmacion">
+<input type="checkbox" name="confirmar" value="si" required /> Confirmo esta operación.</label>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Eliminar hospitalización</button>
+</div>
+</form>
+</div>
+}
+} else { <p>Registro no disponible.</p>
+}
+<p>
+<a class="btn btn-secondary" href="/hospitalizaciones">Volver al listado</a>
+</p>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [Parameter] public int Id { get; set; }
+    private Hospitalizacion? registro;
+    private bool facturada;
+    protected override async Task OnParametersSetAsync() {
+        registro = null; cargaError = null;
+        try { var user=(await Auth.GetAuthenticationStateAsync()).User; registro=await Servicio.ObtenerPorIdAsync(Id,user); if(registro != null) facturada=await Servicio.EstaFacturadaAsync(Id,user); }
+        catch(Exception) { registro=null; cargaError="No fue posible consultar la hospitalización."; }
+    }
+}

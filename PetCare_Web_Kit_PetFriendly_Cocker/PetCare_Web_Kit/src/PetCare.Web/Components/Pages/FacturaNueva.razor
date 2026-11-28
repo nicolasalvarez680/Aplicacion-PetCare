@@ -1,0 +1,112 @@
+@page "/facturas/nueva"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject FacturaService Servicio
+<PageTitle>Nueva factura | PetCare</PageTitle>
+<div class="admin-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/facturas">Facturas</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Emitir factura</h1>
+<p class="page-description">Selecciona los servicios y los medicamentos vendidos.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if (catalogo is not null) { <div class="content-card">
+<form method="post" action="/operaciones/facturas/nueva" data-enhance="false" data-invoice-preview="true">
+    <AntiforgeryToken />
+<div class="form-group">
+<label for="numero">Número de factura</label>
+<input class="form-control" id="numero" name="numero" type="text" required maxlength="20" placeholder="FAC-001" />
+</div>
+<div class="form-group">
+<label for="cliente">Nombre del cliente</label>
+<input class="form-control" id="cliente" name="cliente" type="text" required maxlength="100" />
+</div>
+<h2>Servicios veterinarios</h2>
+<p class="form-help">Selecciona citas confirmadas u hospitalizaciones dadas de alta, no facturadas en una factura vigente.</p>
+@if (!catalogo.Servicios.Any()) { <p>No hay servicios facturables.</p>
+}
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Incluir</th>
+<th>Servicio</th>
+<th>Precio</th>
+</tr>
+</thead>
+<tbody>
+@foreach(var x in catalogo.Servicios) { <tr>
+<td>
+<input type="checkbox" name="servicio" value="@x.Id" data-precio="@x.ObtenerPrecioUnitario().ToString(CultureInfo.InvariantCulture)" aria-label="@($"Incluir {x.Codigo}")" />
+</td>
+<td>@x.Codigo · @x.ObtenerDescripcion()</td>
+<td>@Moneda(x.ObtenerPrecioUnitario())</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+<h2>Medicamentos</h2>
+<p class="form-help">Introduce cantidades únicamente para los lotes que deseas facturar.</p>
+@if (!catalogo.Lotes.Any()) { <p>No hay medicamentos vigentes con existencias.</p>
+}
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Lote</th>
+<th>Precio</th>
+<th>Disponible</th>
+<th>Cantidad</th>
+</tr>
+</thead>
+<tbody>
+@foreach(var x in catalogo.Lotes) { <tr>
+<td>@x.Codigo · @x.Nombre</td>
+<td>@Moneda(x.PrecioUnidad)</td>
+<td>@x.Existencias</td>
+<td>
+<input class="form-control factura-cantidad" type="number" name="@($"producto_{x.Id}")" min="0" max="@x.Existencias" step="1" value="0" data-precio="@x.PrecioUnidad.ToString(CultureInfo.InvariantCulture)" aria-label="@($"Cantidad de {x.Codigo}")" />
+</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+<div class="hospital-cost-summary" aria-live="polite">
+<div>
+<span>Total estimado (COP)</span>
+<strong data-total="true">$0</strong>
+</div>
+</div>
+<p class="form-help">El servidor valida precios, existencias y permisos antes de guardar. No es una factura electrónica DIAN.</p>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Emitir factura</button>
+</div>
+</form>
+<a href="/facturas" class="btn btn-secondary">Cancelar</a>
+</div>
+}
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    private CatalogoFacturable? catalogo;
+    protected override async Task OnParametersSetAsync() {
+        try { catalogo=await Servicio.ObtenerCatalogoAsync((await Auth.GetAuthenticationStateAsync()).User); }
+        catch(Exception) { catalogo=null; cargaError="No se pudo consultar el catálogo facturable."; }
+    }
+}

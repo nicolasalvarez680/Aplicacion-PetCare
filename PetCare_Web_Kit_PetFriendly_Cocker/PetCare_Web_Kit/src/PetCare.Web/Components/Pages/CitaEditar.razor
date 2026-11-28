@@ -1,0 +1,109 @@
+@page "/citas/editar/{Id:int}"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject CitaVeterinariaService Servicio
+<PageTitle>Gestionar cita | PetCare</PageTitle>
+<div class="admin-page form-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/citas">Citas</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Gestionar cita</h1>
+<p class="page-description">Edita o confirma una cita veterinaria.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if(registro is not null) { <div class="content-card">
+<h2>@registro.Codigo · @registro.NombreMascota</h2>
+<p class="pet-animal-detail">Tipo: @(registro.TipoMascota ?? "Sin registrar") @if (registro.TipoMascota == "Perro") { <span> · Raza: @(registro.RazaMascota ?? "Sin registrar")</span> }</p>
+<p>Veterinario: @(registro.VeterinarioAsignado ?? "Sin asignar")</p>
+<p>Fecha: @registro.Fecha.ToString("dd/MM/yyyy HH:mm") · Duración: @registro.DuracionMinutos minutos</p>
+<p>Costo: @Moneda(registro.ObtenerPrecioUnitario())</p>
+<p>Minutos hasta la cita: @registro.CalcularMinutosParaLaCita()</p>
+@if (!facturada) {<form method="post" action="@($"/operaciones/citas/{Id}/editar")" data-enhance="false" data-cita-preview="true">
+    <AntiforgeryToken />
+<div class="hospital-form-grid">
+<div class="form-group">
+<label for="codigo">Código de cita</label>
+<input class="form-control" id="codigo" name="codigo" type="text" value="@registro.Codigo" required maxlength="20" />
+</div>
+<div class="form-group">
+<label for="mascota">Nombre de la mascota</label>
+<input class="form-control" id="mascota" name="mascota" type="text" value="@registro.NombreMascota" required maxlength="80" />
+</div>
+<MascotaCampos Tipo="@registro.TipoMascota" Raza="@registro.RazaMascota" />
+<div class="form-group">
+<label for="fecha">Fecha y hora de cita</label>
+<input class="form-control" id="fecha" name="fecha" type="datetime-local" value="@registro.Fecha.ToString("yyyy-MM-ddTHH:mm")" required />
+</div>
+<div class="form-group">
+<label for="duracion">Duración (minutos)</label>
+<input class="form-control" id="duracion" name="duracion" type="number" value="@registro.DuracionMinutos" required min="15" max="180" step="1" />
+</div>
+</div>
+<div class="hospital-cost-summary">
+<div>
+<span>Tarifa estimada (COP)</span>
+<strong data-cita-costo="true">—</strong>
+</div>
+</div>
+<small class="form-help">Tarifa base de $60.000; $1.500 por minuto adicional a 30.</small>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Guardar cambios</button>
+</div>
+</form>
+} else { <p class="security-note">La cita facturada no puede editarse ni eliminarse.</p>
+}
+</div>
+@if (!facturada && registro.VeterinarioAsignado is null) { <div class="content-card hospital-alta-card">
+<h2>Confirmar cita</h2>
+<form method="post" action="@($"/operaciones/citas/{Id}/confirmar")" data-enhance="false" >
+    <AntiforgeryToken />
+<div class="form-group">
+<label for="veterinario">Veterinario asignado</label>
+<input class="form-control" id="veterinario" name="veterinario" type="text" required maxlength="100" />
+</div>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Confirmar cita</button>
+</div>
+</form>
+</div>
+}
+@if (!facturada) { <div class="content-card hospital-alta-card">
+<h2>Eliminar cita</h2>
+<form method="post" action="@($"/operaciones/citas/{Id}/eliminar")" data-enhance="false" >
+    <AntiforgeryToken />
+<label class="confirmacion">
+<input type="checkbox" name="confirmar" value="si" required /> Confirmo esta operación.</label>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Eliminar cita</button>
+</div>
+</form>
+</div>
+} } else { <p>Registro no disponible.</p>
+}
+<p>
+<a class="btn btn-secondary" href="/citas">Volver al listado</a>
+</p>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [Parameter] public int Id { get; set; }
+    private CitaVeterinaria? registro; private bool facturada;
+    protected override async Task OnParametersSetAsync() {
+        registro=null; cargaError=null;
+        try { var user=(await Auth.GetAuthenticationStateAsync()).User; registro=await Servicio.ObtenerPorIdAsync(Id,user); if(registro!=null) facturada=await Servicio.EstaFacturadaAsync(Id,user); }
+        catch(Exception) { registro=null; cargaError="No fue posible consultar la cita."; }
+    }
+}

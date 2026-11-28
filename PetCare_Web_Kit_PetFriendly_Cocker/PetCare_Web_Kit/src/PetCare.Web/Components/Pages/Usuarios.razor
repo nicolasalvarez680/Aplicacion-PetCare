@@ -1,0 +1,104 @@
+@page "/usuarios"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "SoloAdministrador")]
+@using PetCare.Domain.Enums
+@using PetCare.Web.Security
+@inject PermisosService Permisos
+@inject UsuarioService Servicio
+<PageTitle>Gestión de usuarios | PetCare</PageTitle>
+<div class="admin-page">
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Gestión de usuarios</h1>
+<p class="page-description">Administra el personal de tu clínica veterinaria.</p>
+</div>
+<a class="btn btn-primary" href="/usuarios/nuevo">+ Nuevo usuario</a>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+<div class="stats-grid">
+<article class="stat-card">
+<div class="stat-icon mint">👥</div>
+<div class="stat-value">@datos.Count</div>
+<div class="stat-label">Total de usuarios</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon blue">🛡</div>
+<div class="stat-value">@(datos.Count(x => x.EsAdministrador))</div>
+<div class="stat-label">Administradores</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon peach">👤</div>
+<div class="stat-value">@(datos.Count(x => !x.EsAdministrador))</div>
+<div class="stat-label">Recepcionistas</div>
+</article>
+</div>
+<div class="content-card">
+<h2>Usuarios registrados</h2>
+<form method="get" action="/usuarios" data-enhance="false" class="hospital-toolbar">
+<input type="search" name="q" class="form-control" aria-label="Buscar" placeholder="Buscar por código o nombre" value="@Q"/>
+<select name="estado" class="form-control" aria-label="Estado">
+<option value="" selected="@(string.IsNullOrEmpty(Estado))">Todos los estados</option>
+<option value="admin" selected="@(Estado == "admin")">Administradores</option>
+<option value="recep" selected="@(Estado == "recep")">Recepcionistas</option>
+
+</select>
+<button class="btn btn-secondary" type="submit">Buscar</button>
+</form>
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Usuario</th>
+<th>Rol</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+@foreach(var x in Filtrados) { <tr>
+<td>@x.Id</td>
+<td>
+<div class="user-cell">
+<div class="user-avatar">@(x.NombreUsuario.Length > 0 ? x.NombreUsuario[..1].ToUpperInvariant() : "?")</div>
+<div>
+<strong>@x.NombreUsuario</strong>
+<div class="user-fullname">@x.NombreCompleto</div>
+</div>
+</div>
+</td>
+<td>
+<span class="role-badge @(x.EsAdministrador ? "role-admin" : "role-reception")">@x.Rol</span>
+</td>
+<td>
+<a class="btn btn-secondary" href="@($"/usuarios/editar/{x.Id}")">Gestionar</a>
+</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+@if(!Filtrados.Any()) { <p class="empty-state">No se encontraron usuarios.</p>
+}
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+    [SupplyParameterFromQuery(Name = "estado")] public string? Estado { get; set; }
+    private bool Coincide(string texto) => string.IsNullOrWhiteSpace(Q) || texto.Contains(Q.Trim(), StringComparison.OrdinalIgnoreCase);
+    private List<Usuario> datos = new();
+    private IEnumerable<Usuario> Filtrados => datos.Where(x => Coincide(x.NombreUsuario + " " + x.NombreCompleto + " " + x.Rol) && (Estado != "admin" || x.EsAdministrador) && (Estado != "recep" || !x.EsAdministrador));
+    protected override async Task OnParametersSetAsync() {
+        try { await Permisos.VerificarAdministradorAsync(); datos=await Servicio.ObtenerTodosAsync(); }
+        catch(Exception) { datos.Clear(); cargaError="No fue posible consultar los usuarios."; }
+    }
+}

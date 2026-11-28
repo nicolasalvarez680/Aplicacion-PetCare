@@ -1,0 +1,102 @@
+@page "/facturas"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject FacturaService Servicio
+<PageTitle>Facturación | PetCare</PageTitle>
+<div class="admin-page">
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Facturación</h1>
+<p class="page-description">Emite y consulta facturas de servicios y medicamentos.</p>
+</div>
+<a class="btn btn-primary" href="/facturas/nueva">+ Nueva factura</a>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+<div class="stats-grid">
+<article class="stat-card">
+<div class="stat-icon mint">▤</div>
+<div class="stat-value">@datos.Count</div>
+<div class="stat-label">Total facturas</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon blue">✓</div>
+<div class="stat-value">@(datos.Count(x => !x.EstaAnulada))</div>
+<div class="stat-label">Vigentes</div>
+</article>
+<article class="stat-card">
+<div class="stat-icon lilac">$</div>
+<div class="stat-value">@(Moneda(datos.Where(x => !x.EstaAnulada).Sum(x => x.Total)))</div>
+<div class="stat-label">Total vigente</div>
+</article>
+</div>
+<div class="content-card">
+<h2>Facturas registradas</h2>
+<form method="get" action="/facturas" data-enhance="false" class="hospital-toolbar">
+<input type="search" name="q" class="form-control" aria-label="Buscar" placeholder="Buscar por código o nombre" value="@Q"/>
+<select name="estado" class="form-control" aria-label="Estado">
+<option value="" selected="@(string.IsNullOrEmpty(Estado))">Todos los estados</option>
+<option value="vigentes" selected="@(Estado == "vigentes")">Vigentes</option>
+<option value="anuladas" selected="@(Estado == "anuladas")">Anuladas</option>
+
+</select>
+<button class="btn btn-secondary" type="submit">Buscar</button>
+</form>
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Número</th>
+<th>Fecha</th>
+<th>Cliente</th>
+<th>Emisor</th>
+<th>Total</th>
+<th>Estado</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody>
+@foreach (var x in Filtrados) { <tr>
+<td>@x.Numero</td>
+<td>@x.FechaEmision.ToString("dd/MM/yyyy HH:mm")</td>
+<td>@x.NombreCliente</td>
+<td>@x.UsuarioEmisor.NombreUsuario</td>
+<td>@Moneda(x.Total)</td>
+<td>
+<span class="hospital-status @(x.EstaAnulada ? "expired" : "discharged")">@(x.EstaAnulada ? "Anulada" : "Vigente")</span>
+</td>
+<td>
+<a href="@($"/facturas/{x.Id}")" class="btn btn-secondary">Ver detalle</a>
+</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+@if (!Filtrados.Any()) { <p class="empty-state">No se encontraron facturas.</p>
+}
+</div>
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+    [SupplyParameterFromQuery(Name = "estado")] public string? Estado { get; set; }
+    private bool Coincide(string texto) => string.IsNullOrWhiteSpace(Q) || texto.Contains(Q.Trim(), StringComparison.OrdinalIgnoreCase);
+    private List<Factura> datos = new();
+    private IEnumerable<Factura> Filtrados => datos.Where(x => Coincide(x.Numero + " " + x.NombreCliente) && (Estado != "vigentes" || !x.EstaAnulada) && (Estado != "anuladas" || x.EstaAnulada));
+    protected override async Task OnParametersSetAsync()
+    {
+        cargaError = null;
+        try { datos = await Servicio.ObtenerTodasAsync((await Auth.GetAuthenticationStateAsync()).User); }
+        catch (Exception) { datos.Clear(); cargaError = "No se pudieron consultar los registros. Comprueba la conexión y tu sesión."; }
+    }
+}

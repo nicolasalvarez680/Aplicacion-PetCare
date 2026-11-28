@@ -1,0 +1,104 @@
+@page "/facturas/{Id:int}"
+@using System.Globalization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using PetCare.Domain.Entities
+@using PetCare.Infrastructure.Services
+@attribute [Authorize(Policy = "PersonalAutorizado")]
+@inject AuthenticationStateProvider Auth
+@inject FacturaService Servicio
+<PageTitle>Detalle de factura | PetCare</PageTitle>
+<div class="admin-page">
+<div class="breadcrumb">
+<a href="/dashboard">Inicio</a> / <a href="/facturas">Facturas</a>
+</div>
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB · GESTIÓN VETERINARIA</span>
+<h1>Detalle de factura</h1>
+<p class="page-description">Consulta el comprobante y sus líneas.</p>
+</div>
+</div>
+<OperacionAvisos Error="@(cargaError ?? Error)" Ok="@Ok" />
+@if (registro is not null) { <div class="content-card factura-imprimir">
+<div class="page-header">
+<div>
+<span class="eyebrow">PETCARE WEB</span>
+<h2>Factura @registro.Numero</h2>
+</div>
+<span class="hospital-status @(registro.EstaAnulada ? "expired" : "discharged")">@(registro.EstaAnulada ? "ANULADA" : "VIGENTE")</span>
+</div>
+<p>
+<strong>Cliente:</strong> @registro.NombreCliente</p>
+<p>
+<strong>Fecha:</strong> @registro.FechaEmision.ToString("dd/MM/yyyy HH:mm")</p>
+<p>
+<strong>Emisor:</strong> @registro.UsuarioEmisor.NombreCompleto</p>
+<div class="table-container">
+<table class="table">
+<thead>
+<tr>
+<th>Descripción</th>
+<th>Cantidad</th>
+<th>Precio unitario</th>
+<th>Subtotal</th>
+</tr>
+</thead>
+<tbody>
+@foreach(var l in registro.Lineas) { <tr>
+<td>@l.Descripcion</td>
+<td>@l.Cantidad</td>
+<td>@Moneda(l.PrecioUnitario)</td>
+<td>@Moneda(l.Subtotal)</td>
+</tr>
+}
+</tbody>
+</table>
+</div>
+<div class="hospital-cost-summary">
+<div>
+<span>Total</span>
+<strong>@Moneda(registro.Total)</strong>
+</div>
+</div>
+<p class="form-help">Comprobante académico interno. No equivale a factura electrónica DIAN.</p>
+</div>
+<div class="no-print">
+<p>
+<button type="button" class="btn btn-secondary" data-print="true">Imprimir / guardar PDF</button> <a class="btn btn-secondary" href="/facturas">Volver a facturas</a>
+</p>
+<AuthorizeView Policy="SoloAdministrador">
+<Authorized>
+@if (!registro.EstaAnulada) { <div class="content-card">
+<h2>Anular factura</h2>
+<p>La anulación conserva el comprobante y devuelve las unidades vendidas al inventario.</p>
+<form method="post" action="@($"/operaciones/facturas/{Id}/anular")" data-enhance="false" >
+    <AntiforgeryToken />
+<label class="confirmacion">
+<input type="checkbox" name="confirmar" value="si" required /> Confirmo esta operación.</label>
+    <div class="form-actions">
+<button type="submit" class="btn btn-primary">Anular factura</button>
+</div>
+</form>
+</div>
+}
+</Authorized>
+</AuthorizeView>
+</div>
+} else { <p>Factura no disponible.</p>
+}
+</div>
+@code {
+    [SupplyParameterFromQuery(Name = "error")] public string? Error { get; set; }
+    [SupplyParameterFromQuery(Name = "ok")] public string? Ok { get; set; }
+    private string? cargaError;
+    private static string Moneda(decimal valor) => valor.ToString("C2", CultureInfo.GetCultureInfo("es-CO"));
+    [Parameter] public int Id { get; set; }
+    private Factura? registro;
+    protected override async Task OnParametersSetAsync() {
+        registro=null;
+        try { registro=await Servicio.ObtenerPorIdAsync(Id,(await Auth.GetAuthenticationStateAsync()).User); }
+        catch(Exception) { cargaError="No fue posible consultar la factura."; }
+    }
+}
